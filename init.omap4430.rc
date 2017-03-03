@@ -1,7 +1,7 @@
 import init.omap4430.usb.rc
 
 on init
-    loglevel 8
+    loglevel 3
 
     # See storage config details at http://source.android.com/tech/storage/
     mkdir /storage/sdcard0 0555 root root
@@ -121,31 +121,23 @@ on post-fs-data
     start fixmac
 
     # mount system ro
-    mount ext4 /dev/block/mmcblk0p9 /system ro remount
+    mount ext4 /dev/block/mmcblk0p9 /system rw remount
 
     setprop vold.post_fs_data_done 1
 
 
 on boot
     mount debugfs /sys/kernel/debug /sys/kernel/debug
-    setprop ro.radio.noril yes
-
-# fake some battery state
-    setprop status.battery.state Slow
-    setprop status.battery.level 5
-    setprop status.battery.level_raw  50
-    setprop status.battery.level_scale 9
+    setprop ro.radio.noril no
 
 service fixmac /system/bin/fix-mac.sh
     class core
     user root
     group root
     oneshot
-    disabled
 
 service hwprops /sbin/hwprops
     critical
-    disabled
     oneshot
 
 # initialize the SGX driver
@@ -159,19 +151,18 @@ service pvrsrvinit /system/vendor/bin/pvrsrvinit
 # MSHIELD SMC Daemon - component required to store persistent data coming
 #   from the SMC PA to the device persistent storage
 ###################################################
-service tf_daemon /system/bin/tf_daemon \
+service tf_daemon /system/bin/tf_daemon
     -d -c /vendor/etc/smc_normal_world_android_cfg.ini
     class main
     user root
     group root
     oneshot
-    disabled
 
 ###################################################
 # MSHIELD SMC PA Control - installs the SMC PA into the Secure Environment
 ###################################################
-service smc_pa /system/bin/smc_pa_ctrl \
-    -c /vendor/etc/smc_normal_world_android_cfg.ini \
+service smc_pa /system/bin/smc_pa_ctrl
+    -c /vendor/etc/smc_normal_world_android_cfg.ini
     start /vendor/firmware/smc_pa.ift
     class core
     user root
@@ -179,68 +170,55 @@ service smc_pa /system/bin/smc_pa_ctrl \
     oneshot
 
 # wifi services
-service p2p_supplicant /system/bin/wpa_supplicant -e/data/misc/wifi/entropy.bin \
-    -iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf -N \
+service p2p_supplicant /system/bin/wpa_supplicant -e/data/misc/wifi/entropy.bin
+    -iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf -N
     -ip2p0 -Dnl80211 -c/data/misc/wifi/p2p_supplicant.conf
     class main
     socket wpa_wlan0 dgram 660 wifi wifi
-    disabled
     oneshot
 
-service wpa_supplicant /system/bin/wpa_supplicant \
+service wpa_supplicant /system/bin/wpa_supplicant
     -iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf -e/data/misc/wifi/entropy.bin
     class main
     socket wpa_wlan0 dgram 660 wifi wifi
-    disabled
     oneshot
 
 service dhcpcd_wlan0 /system/bin/dhcpcd -ABKL
     class main
-    disabled
     oneshot
 
 service iprenew_wlan0 /system/bin/dhcpcd -n
     class main
-    disabled
     oneshot
 
 service dhcpcd_p2p /system/bin/dhcpcd -aABKL
     class main
-    disabled
     oneshot
 
 service iprenew_p2p /system/bin/dhcpcd -n
     class main
-    disabled
     oneshot
 
 service dhcpcd_eth0 /system/bin/dhcpcd -ABKL
     class main
-    disabled
     oneshot
 
 service dhcpcd_bnep0 /system/bin/dhcpcd -ABKL
     class main
-    disabled
     oneshot
 
 service iprenew_bnep0 /system/bin/dhcpcd -n
     class main
-    disabled
     oneshot
 
 service hostapd_bin /system/bin/hostapd -d -e/data/misc/wifi/entropy.bin /data/misc/wifi/hostapd.conf
     socket wpa_wlan0 dgram 660 wifi wifi
     class main
-    disabled
     oneshot
 
-#on property:init.svc.smc_pa=stopped
-#	start tf_daemon
+on property:init.svc.smc_pa=stopped
+start tf_daemon
 
-#service watchdog /sbin/watchdog
-#    user root
-#    oneshot
-
-on property:sys.boot_completed=1
-
+service watchdog /sbin/watchdog
+user root
+oneshot
